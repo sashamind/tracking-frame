@@ -32,6 +32,7 @@ let lastVideoTime = -1;
 let box = null;        // сглаженная рамка {x, y, w, h}
 let targetBox = null;  // цель текущего кадра
 
+let mirror = false;    // зеркалить по горизонтали (для фронтальной камеры)
 let bgWhite = true;
 const BG = { white: "#f6f5f1", black: "#0d0d0d" };
 const INK = { white: "#141414", black: "#f6f5f1" };
@@ -75,6 +76,7 @@ btnCam.addEventListener("click", async () => {
     });
     video.srcObject = camStream;
     video.loop = false;
+    mirror = true;   // фронтальная камера — отражаем, чтобы левая рука была слева
     await startVideo();
   } catch (err) {
     setStatus("Не удалось запустить камеру: " + err.message);
@@ -90,6 +92,7 @@ fileInput.addEventListener("change", async () => {
     video.srcObject = null;
     video.src = URL.createObjectURL(file);
     video.loop = true;
+    mirror = false;  // видеофайл не зеркалим
     await startVideo();
   } catch (err) {
     setStatus("Не удалось открыть файл: " + err.message);
@@ -144,11 +147,13 @@ btnBg.addEventListener("click", () => {
 function computeTargetBox(lm, W, H) {
   const xs = [], ys = [];
 
+  const fx = (x) => (mirror ? 1 - x : x) * W;   // зеркалим X при фронтальной камере
+
   for (const i of [...HAND_IDS, ...FOOT_IDS]) {
     const p = lm[i];
     if (!p) continue;
     if (p.visibility !== undefined && p.visibility < MIN_VISIBILITY) continue;
-    xs.push(p.x * W);
+    xs.push(fx(p.x));
     ys.push(p.y * H);
   }
 
@@ -161,7 +166,7 @@ function computeTargetBox(lm, W, H) {
       lear && rear
         ? Math.hypot((lear.x - rear.x) * W, (lear.y - rear.y) * H)
         : H * 0.06;
-    xs.push(nose.x * W);
+    xs.push(fx(nose.x));
     ys.push(eyeY - headW * 0.9);
   }
 
@@ -225,11 +230,16 @@ function draw() {
 
   const { x, y, w, h } = box;
 
-  // видео только внутри рамки
+  // видео только внутри рамки — чёрно-белое, при фронтальной камере зеркальное
   ctx.save();
   ctx.beginPath();
   ctx.rect(x, y, w, h);
   ctx.clip();
+  ctx.filter = "grayscale(1)";
+  if (mirror) {
+    ctx.translate(W, 0);
+    ctx.scale(-1, 1);
+  }
   ctx.drawImage(video, 0, 0, W, H);
   ctx.restore();
 
