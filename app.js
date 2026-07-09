@@ -14,6 +14,7 @@ const ctx        = canvas.getContext("2d");
 const statusEl   = document.getElementById("status");
 
 const btnCam    = document.getElementById("btnCam");
+const btnFlip   = document.getElementById("btnFlip");
 const fileInput = document.getElementById("fileInput");
 const btnPlay   = document.getElementById("btnPlay");
 const btnBg     = document.getElementById("btnBg");
@@ -32,7 +33,8 @@ let lastVideoTime = -1;
 let box = null;        // сглаженная рамка {x, y, w, h}
 let targetBox = null;  // цель текущего кадра
 
-let mirror = false;    // зеркалить по горизонтали (для фронтальной камеры)
+let mirror = false;         // зеркалить по горизонтали (для фронтальной камеры)
+let facingMode = "user";    // "user" — фронтальная, "environment" — основная
 let bgWhite = true;
 const BG = { white: "#f6f5f1", black: "#0d0d0d" };
 const INK = { white: "#141414", black: "#f6f5f1" };
@@ -66,20 +68,42 @@ async function initLandmarker() {
 }
 
 // ── источники ───────────────────────────────────────────────────
+async function startCamera() {
+  await initLandmarker();
+  stopSource();
+  camStream = await navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode: { ideal: facingMode },
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+    },
+    audio: false,
+  });
+  video.srcObject = camStream;
+  video.loop = false;
+  // зеркалим только фронтальную камеру, чтобы левая рука была слева
+  mirror = facingMode === "user";
+  btnFlip.disabled = false;
+  btnFlip.textContent = mirror ? "Камера: фронт." : "Камера: осн.";
+  await startVideo();
+}
+
 btnCam.addEventListener("click", async () => {
   try {
-    await initLandmarker();
-    stopSource();
-    camStream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: false,
-    });
-    video.srcObject = camStream;
-    video.loop = false;
-    mirror = true;   // фронтальная камера — отражаем, чтобы левая рука была слева
-    await startVideo();
+    await startCamera();
   } catch (err) {
     setStatus("Не удалось запустить камеру: " + err.message);
+  }
+});
+
+btnFlip.addEventListener("click", async () => {
+  facingMode = facingMode === "user" ? "environment" : "user";
+  try {
+    await startCamera();
+  } catch (err) {
+    // если второй камеры нет — вернёмся к прежней
+    facingMode = facingMode === "user" ? "environment" : "user";
+    setStatus("Не удалось переключить камеру: " + err.message);
   }
 });
 
@@ -93,6 +117,7 @@ fileInput.addEventListener("change", async () => {
     video.src = URL.createObjectURL(file);
     video.loop = true;
     mirror = false;  // видеофайл не зеркалим
+    btnFlip.disabled = true;
     await startVideo();
   } catch (err) {
     setStatus("Не удалось открыть файл: " + err.message);
@@ -230,17 +255,26 @@ function draw() {
 
   const { x, y, w, h } = box;
 
-  // видео только внутри рамки — чёрно-белое, при фронтальной камере зеркальное
+  // видео только внутри рамки, при фронтальной камере зеркальное
   ctx.save();
   ctx.beginPath();
   ctx.rect(x, y, w, h);
   ctx.clip();
-  ctx.filter = "grayscale(1)";
+
+  ctx.save();
   if (mirror) {
     ctx.translate(W, 0);
     ctx.scale(-1, 1);
   }
   ctx.drawImage(video, 0, 0, W, H);
+  ctx.restore();
+
+  // обесцвечиваем: blend "saturation" c нулевой насыщенностью.
+  // Работает в Safari/iOS, где ctx.filter="grayscale" не поддерживается.
+  ctx.globalCompositeOperation = "saturation";
+  ctx.fillStyle = "hsl(0, 0%, 50%)";
+  ctx.fillRect(x, y, w, h);
+  ctx.globalCompositeOperation = "source-over";
   ctx.restore();
 
   // линии рамки — до краёв холста

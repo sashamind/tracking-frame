@@ -128,11 +128,18 @@ input[type="range"] { width: 90px; accent-color: var(--ink); }
   max-width: 100%;
   max-height: 100%;
   display: flex;
+  align-items: center;      /* не растягивать canvas по высоте */
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
 }
 
 canvas {
   max-width: 100%;
   max-height: calc(100vh - 120px);
+  width: auto;
+  height: auto;
+  object-fit: contain;       /* всегда сохранять пропорции кадра */
   border-radius: 10px;
   box-shadow: 0 1px 4px rgba(20, 20, 20, 0.08);
 }
