@@ -13,6 +13,8 @@ const canvasWrap = document.getElementById("canvasWrap");
 const ctx        = canvas.getContext("2d");
 const statusEl   = document.getElementById("status");
 
+const btnMenu   = document.getElementById("btnMenu");
+const controls  = document.getElementById("controls");
 const btnCam    = document.getElementById("btnCam");
 const btnFlip   = document.getElementById("btnFlip");
 const fileInput = document.getElementById("fileInput");
@@ -66,6 +68,19 @@ async function initLandmarker() {
     numPoses: 1,
   });
 }
+
+// ── бургер-меню (мобильная версия) ──────────────────────────────
+function setMenu(open) {
+  controls.classList.toggle("open", open);
+  btnMenu.setAttribute("aria-expanded", String(open));
+}
+
+btnMenu.addEventListener("click", () => {
+  setMenu(!controls.classList.contains("open"));
+});
+
+// тап по холсту закрывает меню, открытое поверх интерактивной области
+canvas.addEventListener("pointerdown", () => setMenu(false));
 
 // ── источники ───────────────────────────────────────────────────
 async function startCamera() {
@@ -145,6 +160,7 @@ async function startVideo() {
 
   statusEl.hidden = true;
   canvasWrap.hidden = false;
+  setMenu(false);
   btnPlay.disabled = false;
   btnRec.disabled = false;
   btnPlay.textContent = "Пауза";
