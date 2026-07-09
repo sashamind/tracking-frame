@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Следящая рамка</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="bar">
+    <h1 class="title">следящая&nbsp;рамка</h1>
+
+    <div class="controls">
+      <button id="btnCam" class="btn" type="button">Камера</button>
+
+      <label class="btn" for="fileInput">Видеофайл</label>
+      <input id="fileInput" type="file" accept="video/*" hidden />
+
+      <button id="btnPlay" class="btn" type="button" disabled>Пауза</button>
+
+      <label class="slider">
+        <span>отступ</span>
+        <input id="padding" type="range" min="0" max="20" value="4" step="0.5" />
+      </label>
+
+      <label class="slider">
+        <span>плавность</span>
+        <input id="smoothing" type="range" min="1" max="30" value="12" step="1" />
+      </label>
+
+      <label class="caption-field">
+        <span>подпись</span>
+        <input id="caption" type="text" value="thank you archive.org" spellcheck="false" />
+      </label>
+
+      <button id="btnBg" class="btn" type="button" title="Цвет фона">Фон: белый</button>
+
+      <button id="btnRec" class="btn btn-rec" type="button" disabled>
+        <span class="dot"></span>Запись
+      </button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <p id="status" class="status">Выберите камеру или видеофайл. Модель позы загрузится при первом запуске.</p>
+    <div class="canvas-wrap" id="canvasWrap" hidden>
+      <canvas id="canvas"></canvas>
+    </div>
+  </main>
+
+  <video id="video" playsinline muted hidden></video>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
